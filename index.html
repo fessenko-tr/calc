@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Productivity Tracker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface-2: #181818;
+      --border: #222222;
+      --border-focus: #3a3a3a;
+      --text: #e8e8e8;
+      --text-muted: #555;
+      --accent: #00d4aa;
+      --accent-dim: rgba(0, 212, 170, 0.12);
+      --danger: #ff4d4d;
+      --bar-bg: #1e1e1e;
+      --radius: 6px;
+      --font: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      padding: 48px 16px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 560px;
+    }
+
+    header {
+      margin-bottom: 36px;
+    }
+
+    header h1 {
+      font-size: 11px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    header p {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.02em;
+      margin-top: 4px;
+    }
+
+    .section {
+      margin-bottom: 24px;
+    }
+
+    label {
+      display: block;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .field {
+      flex: 1;
+      position: relative;
+    }
+
+    .field span {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 11px;
+      pointer-events: none;
+    }
+
+    input[type="number"],
+    textarea {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 13px;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color 0.15s, background 0.15s;
+      appearance: none;
+      -moz-appearance: textfield;
+    }
+
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+    input[type="number"]:focus,
+    textarea:focus {
+      border-color: var(--border-focus);
+      background: var(--surface-2);
+    }
+
+    input[type="number"].field-with-unit {
+      padding-right: 36px;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 180px;
+      line-height: 1.7;
+      font-size: 12px;
+    }
+
+    /* ── Results ── */
+
+    .results {
+      margin-top: 32px;
+      padding: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .stat-value.accent { color: var(--accent); }
+    .stat-value.danger { color: var(--danger); }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin-bottom: 20px;
+    }
+
+    /* ── Progress bars ── */
+
+    .bars-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .bar-index {
+      color: var(--text-muted);
+      font-size: 11px;
+      width: 14px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .bar-track {
+      flex: 1;
+      height: 6px;
+      background: var(--bar-bg);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--accent), #00a8ff);
+      transition: width 0.25s ease;
+    }
+
+    .bar-fill.full {
+      background: linear-gradient(90deg, var(--accent), #00a8ff);
+      opacity: 0.6;
+    }
+
+    .bar-pct {
+      color: var(--text-muted);
+      font-size: 11px;
+      width: 48px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    /* ── Empty state ── */
+    .empty {
+      color: var(--text-muted);
+      font-size: 12px;
+      text-align: center;
+      padding: 8px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>tracker</h1>
+      <p>Productivity Points</p>
+    </header>
+
+    <div class="section">
+      <label>Work hours</label>
+      <div class="row">
+        <div class="field">
+          <input class="field-with-unit" id="hours" type="number" min="0" max="24" value="4" />
+          <span>h</span>
+        </div>
+        <div class="field">
+          <input class="field-with-unit" id="minutes" type="number" min="0" max="59" value="0" />
+          <span>m</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <label>Work log</label>
+      <textarea id="worklog" spellcheck="false" placeholder="Paste your work log here…&#10;&#10;Task Namex1 5&#10;Another Taskx0.7 3"></textarea>
+    </div>
+
+    <div class="section">
+      <label>QA bonus</label>
+      <div class="row" style="max-width: 120px;">
+        <div class="field">
+          <input class="field-with-unit" id="qa" type="number" min="0" value="0" />
+          <span>×</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="results" id="results">
+      <div class="results-grid">
+        <div>
+          <div class="stat-label">Earned</div>
+          <div class="stat-value accent" id="stat-earned">—</div>
+        </div>
+        <div>
+          <div class="stat-label">Expected 110%</div>
+          <div class="stat-value" id="stat-expected">—</div>
+        </div>
+        <div>
+          <div class="stat-label">PR</div>
+          <div class="stat-value" id="stat-pr">—</div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="bars-wrap" id="bars"></div>
+    </div>
+  </div>
+
+  <script>
+    const POINTS_PER_HOUR_100 = 12.5;
+    const POINTS_PER_HOUR_110 = 13.75;
+
+    const $ = id => document.getElementById(id);
+
+    function parseWorklog(text) {
+      return text
+        .split('\n')
+        .filter(line => line.includes('x'))
+        .map(line => line.substring(line.indexOf('x') + 1).trim())
+        .map(part => part.split(/\s+/))
+        .filter(parts => parts.length >= 2)
+        .reduce((sum, [multiplier, count]) => {
+          const m = parseFloat(multiplier);
+          const c = parseFloat(count);
+          return sum + (isNaN(m) || isNaN(c) ? 0 : m * c);
+        }, 0);
+    }
+
+    function renderBars(percentage) {
+      const barsEl = $('bars');
+      barsEl.innerHTML = '';
+
+      const safe = Math.max(0, percentage);
+      const fullBars = Math.floor(safe / 100);
+      const remainder = safe % 100;
+
+      for (let i = 1; i <= fullBars; i++) {
+        barsEl.appendChild(makeBar(i, 100, true));
+      }
+
+      if (remainder > 0 || safe === 0) {
+        barsEl.appendChild(makeBar(fullBars + 1, remainder, false));
+      }
+    }
+
+    function makeBar(index, pct, isFull) {
+      const row = document.createElement('div');
+      row.className = 'bar-row';
+      row.innerHTML = `
+        <span class="bar-index">${index}</span>
+        <div class="bar-track">
+          <div class="bar-fill${isFull ? ' full' : ''}" style="width: ${Math.min(pct, 100)}%"></div>
+        </div>
+        <span class="bar-pct">${pct === 100 ? '100' : pct.toFixed(1)}%</span>
+      `;
+      return row;
+    }
+
+    function calculate() {
+      const hours   = parseFloat($('hours').value)   || 0;
+      const minutes = parseFloat($('minutes').value) || 0;
+      const qa      = parseFloat($('qa').value)      || 0;
+      const worklog = $('worklog').value;
+
+      const totalHours = hours + minutes / 60;
+      const logPoints  = parseWorklog(worklog);
+      const earned     = +logPoints.toFixed(2) + qa * 20;
+
+      const exp100 = totalHours * POINTS_PER_HOUR_100;
+      const exp110 = totalHours * POINTS_PER_HOUR_110;
+      const pr     = exp100 > 0 ? (earned / exp100) * 100 : 0;
+      const pctOf110 = exp110 > 0 ? (earned / exp110) * 100 : 0;
+
+      $('stat-earned').textContent   = earned.toFixed(2);
+      $('stat-expected').textContent = exp110.toFixed(2);
+
+      const prEl = $('stat-pr');
+      prEl.textContent = pr.toFixed(2) + '%';
+      prEl.className = 'stat-value ' + (pr >= 100 ? 'accent' : pr < 80 ? 'danger' : '');
+
+      if (worklog.trim() === '') {
+        $('bars').innerHTML = '<div class="empty">paste your work log to see progress</div>';
+      } else {
+        renderBars(pctOf110);
+      }
+    }
+
+    ['hours', 'minutes', 'qa', 'worklog'].forEach(id => {
+      $(id).addEventListener('input', calculate);
+    });
+
+    calculate();
+  </script>
+</body>
+</html>
