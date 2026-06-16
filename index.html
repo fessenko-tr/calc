@@ -222,6 +222,22 @@
       flex-shrink: 0;
     }
 
+    /* ── Points left message ── */
+    .points-left {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    .points-left strong {
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .points-left.reached {
+      color: var(--accent);
+    }
+
     /* ── Empty state ── */
     .empty {
       color: var(--text-muted);
@@ -258,11 +274,15 @@
     </div>
 
     <div class="section">
-      <label>QA bonus</label>
-      <div class="row" style="max-width: 120px;">
+      <label>QA bonus &amp; target</label>
+      <div class="row" style="max-width: 240px;">
         <div class="field">
           <input class="field-with-unit" id="qa" type="number" min="0" value="0" />
           <span>×</span>
+        </div>
+        <div class="field">
+          <input class="field-with-unit" id="target" type="number" min="1" max="999" value="110" />
+          <span>%</span>
         </div>
       </div>
     </div>
@@ -274,7 +294,7 @@
           <div class="stat-value accent" id="stat-earned">—</div>
         </div>
         <div>
-          <div class="stat-label">Expected 110%</div>
+          <div class="stat-label" id="label-expected">Expected 110%</div>
           <div class="stat-value" id="stat-expected">—</div>
         </div>
         <div>
@@ -282,6 +302,7 @@
           <div class="stat-value" id="stat-pr">—</div>
         </div>
       </div>
+      <div id="points-left-msg"></div>
       <div class="divider"></div>
       <div class="bars-wrap" id="bars"></div>
     </div>
@@ -289,7 +310,6 @@
 
   <script>
     const POINTS_PER_HOUR_100 = 12.5;
-    const POINTS_PER_HOUR_110 = 13.75;
 
     const $ = id => document.getElementById(id);
 
@@ -312,14 +332,14 @@
       barsEl.innerHTML = '';
 
       const safe = Math.max(0, percentage);
-      const fullBars = Math.floor(safe / 100);
+      const fullBars = Math.min(Math.floor(safe / 100), 10);
       const remainder = safe % 100;
 
       for (let i = 1; i <= fullBars; i++) {
         barsEl.appendChild(makeBar(i, 100, true));
       }
 
-      if (remainder > 0 || safe === 0) {
+      if (fullBars < 10 && (remainder > 0 || safe === 0)) {
         barsEl.appendChild(makeBar(fullBars + 1, remainder, false));
       }
     }
@@ -341,32 +361,45 @@
       const hours   = parseFloat($('hours').value)   || 0;
       const minutes = parseFloat($('minutes').value) || 0;
       const qa      = parseFloat($('qa').value)      || 0;
+      const target  = parseFloat($('target').value)  || 110;
       const worklog = $('worklog').value;
 
       const totalHours = hours + minutes / 60;
       const logPoints  = parseWorklog(worklog);
       const earned     = +logPoints.toFixed(2) + qa * 20;
 
-      const exp100 = totalHours * POINTS_PER_HOUR_100;
-      const exp110 = totalHours * POINTS_PER_HOUR_110;
-      const pr     = exp100 > 0 ? (earned / exp100) * 100 : 0;
-      const pctOf110 = exp110 > 0 ? (earned / exp110) * 100 : 0;
+      const exp100   = totalHours * POINTS_PER_HOUR_100;
+      const expTarget = totalHours * POINTS_PER_HOUR_100 * (target / 100);
+      const pr       = exp100 > 0 ? (earned / exp100) * 100 : 0;
+      const pctOfTarget = expTarget > 0 ? (earned / expTarget) * 100 : 0;
 
-      $('stat-earned').textContent   = earned.toFixed(2);
-      $('stat-expected').textContent = exp110.toFixed(2);
+      $('label-expected').textContent = `Expected ${target}%`;
+      $('stat-earned').textContent    = earned.toFixed(2);
+      $('stat-expected').textContent  = expTarget.toFixed(2);
 
       const prEl = $('stat-pr');
       prEl.textContent = pr.toFixed(2) + '%';
       prEl.className = 'stat-value ' + (pr >= 100 ? 'accent' : pr < 80 ? 'danger' : '');
 
+      const msgEl = $('points-left-msg');
       if (worklog.trim() === '') {
         $('bars').innerHTML = '<div class="empty">paste your work log to see progress</div>';
+        msgEl.innerHTML = '';
+        msgEl.className = '';
       } else {
-        renderBars(pctOf110);
+        renderBars(pctOfTarget);
+        const left = expTarget - earned;
+        if (left > 0) {
+          msgEl.className = 'points-left';
+          msgEl.innerHTML = `Only <strong>${left.toFixed(2)}</strong> points left to reach <strong>${target}%</strong>`;
+        } else {
+          msgEl.className = 'points-left reached';
+          msgEl.textContent = `Target ${target}% reached (+${Math.abs(left).toFixed(2)} pts over)`;
+        }
       }
     }
 
-    ['hours', 'minutes', 'qa', 'worklog'].forEach(id => {
+    ['hours', 'minutes', 'qa', 'target', 'worklog'].forEach(id => {
       $(id).addEventListener('input', calculate);
     });
 
