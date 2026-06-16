@@ -97,6 +97,7 @@
     }
 
     input[type="number"],
+    input[type="text"],
     textarea {
       width: 100%;
       background: var(--surface);
@@ -116,6 +117,7 @@
     input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
 
     input[type="number"]:focus,
+    input[type="text"]:focus,
     textarea:focus {
       border-color: var(--border-focus);
       background: var(--surface-2);
@@ -306,6 +308,28 @@
       <div class="divider"></div>
       <div class="bars-wrap" id="bars"></div>
     </div>
+
+    <div class="results" id="replace-section" style="margin-top: 24px;">
+      <div style="font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 16px;">Find &amp; Replace</div>
+      <div class="section" style="margin-bottom: 12px;">
+        <label>Input text</label>
+        <textarea id="replace-input" spellcheck="false" placeholder="Paste your text here…"></textarea>
+      </div>
+      <div class="row" style="margin-bottom: 12px;">
+        <div class="field">
+          <label>Find</label>
+          <input type="text" id="replace-find" spellcheck="false" placeholder="e.g.  ,  " />
+        </div>
+        <div class="field">
+          <label>Replace with</label>
+          <input type="text" id="replace-with" spellcheck="false" placeholder="e.g.  ;  " />
+        </div>
+      </div>
+      <div class="section" style="margin-bottom: 0;">
+        <label>Output</label>
+        <textarea id="replace-output" spellcheck="false" readonly placeholder="Output will appear here…" style="color: var(--accent); cursor: default;"></textarea>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -404,6 +428,21 @@
     });
 
     calculate();
+
+    function doReplace() {
+      const text = $('replace-input').value;
+      const find = $('replace-find').value;
+      const replaceWith = $('replace-with').value;
+      if (find === '') {
+        $('replace-output').value = text;
+        return;
+      }
+      $('replace-output').value = text.split(find).join(replaceWith);
+    }
+
+    ['replace-input', 'replace-find', 'replace-with'].forEach(id => {
+      $(id).addEventListener('input', doReplace);
+    });
   </script>
 </body>
 </html>
